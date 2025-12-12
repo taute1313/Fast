@@ -32,10 +32,15 @@
     .container {
       width: 100%;
       max-width: 500px;
+      perspective: 1000px; /* Para efectos 3D sutiles */
     }
 
     /* --- PANTALLAS (Login vs App) --- */
-    .screen { display: none; animation: fadeIn 0.5s ease; }
+    .screen { 
+        display: none; 
+        /* ANIMACIÓN DE PANTALLA MEJORADA */
+        animation: fadeScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
     .screen.active { display: block; }
 
     /* --- COMPONENTES --- */
@@ -46,6 +51,13 @@
       padding: 30px;
       border-radius: 20px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    /* Efecto sutil al pasar el mouse sobre la tarjeta principal */
+    .glass-card:hover {
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        border-color: rgba(255,255,255,0.2);
     }
 
     h1, h2 { text-align: center; margin-bottom: 20px; font-weight: 600; }
@@ -60,10 +72,17 @@
       background: var(--input-bg);
       color: white;
       margin-top: 5px;
-      transition: 0.3s;
+      transition: all 0.3s ease; /* Transición suave para todo */
     }
 
-    input:focus { outline: none; border-color: var(--primary); background: rgba(0,0,0,0.5); }
+    /* ANIMACIÓN INPUT FOCUS */
+    input:focus, select:focus { 
+        outline: none; 
+        border-color: var(--primary); 
+        background: rgba(0,0,0,0.6); 
+        transform: scale(1.02); /* Crece ligeramente */
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+    }
 
     button.btn-primary {
       background: var(--primary);
@@ -71,17 +90,31 @@
       font-weight: 600;
       cursor: pointer;
       margin-top: 10px;
+      position: relative;
+      overflow: hidden;
     }
-    button.btn-primary:hover { filter: brightness(1.2); }
+    
+    /* ANIMACIÓN BOTÓN HOVER Y CLICK */
+    button.btn-primary:hover { 
+        filter: brightness(1.2); 
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+    }
+    button.btn-primary:active {
+        transform: scale(0.95);
+    }
 
     .btn-link {
       background: none; border: none; color: #a5b4fc; 
       cursor: pointer; text-decoration: underline; margin-top: 10px; font-size: 0.9rem;
+      transition: color 0.3s;
     }
+    .btn-link:hover { color: #fff; }
 
     /* --- LISTA DE TAREAS --- */
     .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .btn-logout { width: auto; background: var(--danger); padding: 8px 15px; font-size: 0.8rem; }
+    .btn-logout { width: auto; background: var(--danger); padding: 8px 15px; font-size: 0.8rem; cursor: pointer; }
+    .btn-logout:hover { background: #dc2626; transform: rotate(2deg); }
 
     .task-card {
       background: rgba(255,255,255,0.03);
@@ -92,17 +125,57 @@
       justify-content: space-between;
       align-items: center;
       border-left: 4px solid transparent;
+      
+      /* Preparación para animación de entrada */
+      opacity: 0;
+      transform: translateX(-20px);
+      animation: slideInTask 0.5s forwards;
+      transition: all 0.3s ease;
+    }
+    
+    /* Hover en las tareas */
+    .task-card:hover {
+        background: rgba(255,255,255,0.08);
+        transform: translateX(5px);
     }
 
     .task-card.priority-high { border-left-color: var(--danger); }
     .task-card.priority-medium { border-left-color: #f59e0b; }
     .task-card.priority-low { border-left-color: var(--success); }
 
-    .task-card.completed { opacity: 0.5; text-decoration: line-through; }
+    .task-card.completed { 
+        opacity: 0.5; 
+        text-decoration: line-through; 
+        background: rgba(0,0,0,0.2);
+        animation: none; /* Evitar re-animar al cambiar clase */
+        transform: scale(0.98);
+    }
 
-    .actions button { width: 30px; height: 30px; border-radius: 50%; padding: 0; margin-left: 5px; }
+    /* Animación de eliminación */
+    .task-card.removing {
+        animation: slideOutRight 0.5s forwards !important;
+    }
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+    .actions button { 
+        width: 30px; height: 30px; border-radius: 50%; padding: 0; margin-left: 5px; cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    }
+    .actions button:hover { transform: scale(1.2) rotate(10deg); }
+
+    /* --- KEYFRAMES (NUEVO) --- */
+    @keyframes fadeScale {
+        from { opacity: 0; transform: scale(0.9) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes slideInTask {
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideOutRight {
+        to { opacity: 0; transform: translateX(50px) scale(0.8); margin-bottom: -45px; } 
+        /* margin-bottom negativo hace que los elementos de abajo suban suavemente */
+    }
   </style>
 </head>
 <body>
@@ -170,25 +243,36 @@
     function showApp() {
       document.getElementById('auth-screen').classList.remove('active');
       document.getElementById('app-screen').classList.add('active');
-      loadTasks(); // Cargar datos al entrar
+      loadTasks(); 
     }
 
-    // --- LÓGICA DE AUTENTICACIÓN ---
+    // --- LÓGICA DE AUTENTICACIÓN (Sin cambios mayores) ---
     document.getElementById('toggle-auth').onclick = () => {
-      isLoginMode = !isLoginMode;
-      const title = document.getElementById('auth-title');
-      const btn = document.getElementById('auth-btn');
-      const toggle = document.getElementById('toggle-auth');
+      // Pequeña animación al cambiar texto
+      const formCard = document.querySelector('#auth-screen .glass-card');
+      formCard.style.opacity = '0';
+      formCard.style.transform = 'translateY(10px)';
       
-      if(isLoginMode) {
-        title.innerText = "Iniciar Sesión";
-        btn.innerText = "Entrar";
-        toggle.innerText = "¿No tienes cuenta? Regístrate";
-      } else {
-        title.innerText = "Crear Cuenta";
-        btn.innerText = "Registrarse";
-        toggle.innerText = "¿Ya tienes cuenta? Inicia sesión";
-      }
+      setTimeout(() => {
+          isLoginMode = !isLoginMode;
+          const title = document.getElementById('auth-title');
+          const btn = document.getElementById('auth-btn');
+          const toggle = document.getElementById('toggle-auth');
+          
+          if(isLoginMode) {
+            title.innerText = "Iniciar Sesión";
+            btn.innerText = "Entrar";
+            toggle.innerText = "¿No tienes cuenta? Regístrate";
+          } else {
+            title.innerText = "Crear Cuenta";
+            btn.innerText = "Registrarse";
+            toggle.innerText = "¿Ya tienes cuenta? Inicia sesión";
+          }
+          
+          // Reaparecer
+          formCard.style.opacity = '1';
+          formCard.style.transform = 'translateY(0)';
+      }, 200);
     };
 
     document.getElementById('auth-form').onsubmit = async (e) => {
@@ -196,6 +280,12 @@
       const user = document.getElementById('username').value;
       const pass = document.getElementById('password').value;
       const msg = document.getElementById('auth-msg');
+      const btn = document.getElementById('auth-btn');
+      
+      // Feedback visual de carga
+      const originalText = btn.innerText;
+      btn.innerText = "Cargando...";
+      btn.style.opacity = "0.7";
       msg.innerText = "";
 
       const endpoint = isLoginMode ? "/auth/login" : "/auth/register";
@@ -208,21 +298,33 @@
         });
 
         const data = await res.json();
+        
+        // Restaurar botón
+        btn.innerText = originalText;
+        btn.style.opacity = "1";
 
         if (!res.ok) throw new Error(data.detail || "Error en la petición");
 
         if (isLoginMode) {
-          // Guardar token y entrar
           token = data.access_token;
           localStorage.setItem("token", token);
           showApp();
         } else {
-          // Registro exitoso, cambiar a login
           alert("¡Cuenta creada! Ahora inicia sesión.");
           document.getElementById('toggle-auth').click();
         }
       } catch (err) {
+        btn.innerText = originalText;
+        btn.style.opacity = "1";
         msg.innerText = err.message;
+        // Animación de error (sacudida)
+        const card = document.querySelector('#auth-screen .glass-card');
+        card.animate([
+            { transform: 'translateX(0)' }, 
+            { transform: 'translateX(-10px)' }, 
+            { transform: 'translateX(10px)' }, 
+            { transform: 'translateX(0)' }
+        ], { duration: 300 });
       }
     };
 
@@ -237,7 +339,6 @@
 
     // --- LÓGICA DE TAREAS ---
     
-    // Helper para incluir token
     function authHeader() {
       return { 
         "Content-Type": "application/json",
@@ -248,26 +349,29 @@
     async function loadTasks() {
       try {
         const res = await fetch(API_BASE + "/tasks/", { headers: authHeader() });
-        if (res.status === 401) { logout(); return; } // Token expirado
+        if (res.status === 401) { logout(); return; } 
         
         const tasks = await res.json();
         const list = document.getElementById("tasks-list");
         list.innerHTML = "";
         
-        // Ordenar y renderizar
         tasks.sort((a,b) => a.completed - b.completed);
         
-        tasks.forEach(t => {
+        tasks.forEach((t, index) => {
           const li = document.createElement("li");
           li.className = `task-card priority-${t.priority} ${t.completed ? 'completed' : ''}`;
+          
+          // ANIMACIÓN EN CASCADA: Añadimos un delay basado en el índice
+          li.style.animationDelay = `${index * 0.1}s`;
+
           li.innerHTML = `
             <div>
               <strong>${t.title}</strong>
               <div style="font-size: 0.8rem; opacity: 0.7">${t.description || ''}</div>
             </div>
             <div class="actions">
-              ${!t.completed ? `<button onclick="completeTask('${t.id}')" style="background:#10b981">✓</button>` : ''}
-              <button onclick="deleteTask('${t.id}')" style="background:#ef4444">✕</button>
+              ${!t.completed ? `<button onclick="completeTask('${t.id}', this)" style="background:#10b981">✓</button>` : ''}
+              <button onclick="deleteTask('${t.id}', this)" style="background:#ef4444">✕</button>
             </div>
           `;
           list.appendChild(li);
@@ -279,6 +383,11 @@
       e.preventDefault();
       const title = document.getElementById('new-title').value;
       const priority = document.getElementById('new-priority').value;
+      const btn = e.target.querySelector('button');
+      
+      // Efecto de pulsación en el botón
+      btn.style.transform = "scale(0.9)";
+      setTimeout(() => btn.style.transform = "scale(1)", 150);
 
       await fetch(API_BASE + "/tasks/", {
         method: "POST",
@@ -290,7 +399,13 @@
       loadTasks();
     };
 
-    async function completeTask(id) {
+    // Modificado para aceptar el elemento HTML 'el'
+    async function completeTask(id, el) {
+      // Feedback visual inmediato antes de la llamada a la API
+      const li = el.closest('li');
+      li.style.transform = "scale(1.02)";
+      li.style.background = "rgba(16, 185, 129, 0.2)"; // Destello verde
+      
       await fetch(`${API_BASE}/tasks/${id}`, {
         method: "PATCH",
         headers: authHeader(),
@@ -299,12 +414,21 @@
       loadTasks();
     }
 
-    async function deleteTask(id) {
-      await fetch(`${API_BASE}/tasks/${id}`, {
-        method: "DELETE",
-        headers: authHeader()
-      });
-      loadTasks();
+    // Modificado para aceptar el elemento HTML 'el'
+    async function deleteTask(id, el) {
+      const li = el.closest('li');
+      
+      // 1. Añadimos clase para animar la salida
+      li.classList.add('removing');
+
+      // 2. Esperamos a que termine la animación (500ms) antes de borrar realmente
+      setTimeout(async () => {
+          await fetch(`${API_BASE}/tasks/${id}`, {
+            method: "DELETE",
+            headers: authHeader()
+          });
+          loadTasks();
+      }, 400); // Un poco menos de la duración CSS para que sea fluido
     }
   </script>
 </body>
