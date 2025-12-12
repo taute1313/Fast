@@ -2,35 +2,38 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
+import os
 
+# Importamos tu router
 from app.api.v1.router import api_router
-from app.core.config import settings
 
-app = FastAPI(title=settings.app_name)
+app = FastAPI(title="Task Manager Pro")
 
-# Carpeta de estáticos (donde estará index.html)
-static_dir = Path(__file__).parent / "static"
+# --- SOLUCIÓN DEL ERROR DE CARPETA 'static' ---
+# 1. Buscamos dónde está ESTE archivo (main.py)
+BASE_DIR = Path(__file__).resolve().parent
 
-# Montar /static (por si en el futuro tienes CSS/JS/imágenes)
+# 2. Definimos la ruta a la carpeta static
+static_dir = BASE_DIR / "static"
+
+# 3. (Opcional) Si la carpeta no existe, la creamos para que no falle
+if not static_dir.exists():
+    os.makedirs(static_dir)
+
+# 4. Montamos la carpeta usando la ruta absoluta
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
 
 @app.get("/")
 def root():
-    """
-    Devuelve la página principal (frontend simple).
-    """
+    # Servimos el index.html usando la ruta absoluta
     index_path = static_dir / "index.html"
-    return FileResponse(index_path)
-
+    if index_path.exists():
+        return FileResponse(index_path)
+    return {"message": "Archivo index.html no encontrado en app/static"}
 
 @app.get("/healthz")
 async def healthz():
-    """
-    Endpoint de salud para comprobar que la API está viva.
-    """
-    return {"status": "ok", "env": settings.env}
+    return {"status": "ok"}
 
-
-# Rutas de la API (/api/v1/...)
+# Incluimos las rutas
 app.include_router(api_router)
