@@ -230,7 +230,15 @@
     // --- TAREAS ---
     async function loadTasks() {
       try {
-        const res = await fetch(API_BASE + "/tasks/");
+        // CORRECCIÓN: Añadido header Authorization
+        const res = await fetch(API_BASE + "/tasks/", {
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+        
+        if (res.status === 401) { logout(); return; } // Si el token expiró, cerrar sesión
+
         const tasks = await res.json();
         const list = document.getElementById("tasks-list");
         list.innerHTML = "";
@@ -260,14 +268,19 @@
     document.getElementById('create-task-form').onsubmit = async (e) => {
       e.preventDefault();
       const title = document.getElementById('new-title').value;
-      const desc = document.getElementById('new-desc').value; // <--- CAPTURAR DESCRIPCIÓN
+      const desc = document.getElementById('new-desc').value;
       const priority = document.getElementById('new-priority').value;
 
+      // CORRECCIÓN: Añadido header Authorization
       await fetch(API_BASE + "/tasks/", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", 
+        headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ 
             title: title, 
-            description: desc, // <--- ENVIAR DESCRIPCIÓN
+            description: desc,
             priority: priority, 
             completed: false,
             tags: []
@@ -275,13 +288,18 @@
       });
       
       document.getElementById('new-title').value = "";
-      document.getElementById('new-desc').value = ""; // LIMPIAR
+      document.getElementById('new-desc').value = "";
       loadTasks();
     };
 
     async function completeTask(id) {
+      // CORRECCIÓN: Añadido header Authorization
       await fetch(`${API_BASE}/tasks/${id}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json" },
+        method: "PATCH", 
+        headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ completed: true })
       });
       loadTasks();
@@ -291,7 +309,13 @@
       const li = el.closest('li');
       li.classList.add('removing');
       setTimeout(async () => {
-          await fetch(`${API_BASE}/tasks/${id}`, { method: "DELETE" });
+          // CORRECCIÓN: Añadido header Authorization
+          await fetch(`${API_BASE}/tasks/${id}`, { 
+              method: "DELETE",
+              headers: { 
+                  "Authorization": `Bearer ${token}`
+              }
+          });
           loadTasks();
       }, 400);
     }
