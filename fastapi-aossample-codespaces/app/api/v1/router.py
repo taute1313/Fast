@@ -1,26 +1,22 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 
-# Definimos el router (esto es lo que importa tu main.py)
-api_router = APIRouter()
+api_router = APIRouter(prefix="/api/v1")
 
-# --- 1. MODELO DE DATOS ACTUALIZADO ---
-# Aquí es donde le decimos a Python: "Oye, ahora las tareas tienen descripción"
+# --- MODELO DE DATOS (Con Descripción) ---
 class Task(BaseModel):
     id: Optional[int] = None
     title: str
-    description: Optional[str] = ""  # <--- ¡ESTO ES LO NUEVO!
+    description: Optional[str] = "" 
     priority: str = "medium"
     completed: bool = False
     tags: List[str] = []
 
-# Base de datos temporal en memoria
 tasks_db = []
 current_id = 1
 
-# --- 2. RUTAS DE TAREAS (Endpoints) ---
-
+# --- RUTAS DE TAREAS ---
 @api_router.get("/tasks/", response_model=List[Task])
 async def get_tasks():
     return tasks_db
@@ -48,19 +44,16 @@ async def update_task(task_id: int, task_update: dict):
             return task
     raise HTTPException(status_code=404, detail="Tarea no encontrada")
 
-
-# --- 3. AUTH SIMULADO (Solución al error de bcrypt) ---
-# Esto permite que el frontend funcione sin configurar bases de datos complejas ahora mismo.
-
+# --- AUTH SIMULADO (ESTO ARREGLA EL ERROR DE BCRYPT) ---
+# Eliminamos la dependencia de passlib/bcrypt real para evitar el error.
 class UserAuth(BaseModel):
     username: str
     password: str
 
 @api_router.post("/auth/login")
 async def login(user: UserAuth):
-    # Aceptamos cualquier usuario para que puedas probar la app
-    return {"access_token": "token-simulado-123", "token_type": "bearer"}
+    return {"access_token": "token-simulado-no-falla", "token_type": "bearer"}
 
 @api_router.post("/auth/register")
 async def register(user: UserAuth):
-    return {"message": "Usuario registrado exitosamente"}
+    return {"message": "Usuario registrado"}
